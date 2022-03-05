@@ -1,4 +1,4 @@
-# Sky War
+# Sky War Game:
 
 This is a game developed using HTML and JavaScript. 
 
