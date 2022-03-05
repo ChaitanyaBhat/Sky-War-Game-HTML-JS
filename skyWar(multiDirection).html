@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKY WAR</title>
+    <style>
+        body {
+            padding: 0px;
+            margin: 0px;
+            background-color:black;
+        }
+        .warrior-img {
+            position: absolute;
+            left:450px;
+            top:500px;
+            width: 6rem;
+            height: 5rem;            
+        }
+    </style>
+</head>
+<body>
+    <div class="warrior-div">
+        <img class="warrior-img" src="./static/spaceShip.png" alt="bullet">
+    </div>
+    <div class="bullets-div"></div>
+    <div class="enemies-div"></div>
+    <div class="explosion-div"></div>
+    <div class="game-over-div"></div>
+    <script>
+        let screenWidth = 768;
+        let screenHeight = 1366;
+        let rotation = 1;
+        let count = 0;
+        let rotateBullet = 0;
+        let bulletNo = 0;
+        let enemyNo = 0;
+        let enemyTimerId = 0;
+        let bullets = [];
+        let enemies = [];
+        let xIncrement = 0;
+        let yIncrement = 15;
+
+        class objDimension{
+            constructor(obj){
+                this.x = obj.offsetLeft;
+                this.y = obj.offsetTop;;
+                this.w = obj.width;
+                this.h = obj.height;
+                this.xCenter = this.x + (this.w)/2;
+                this.yCenter = this.y + (this.h)/2;
+            }
+        }
+        
+        let warriorObj = document.querySelector('.warrior-img');
+        warriorObj.style.left = (screenWidth/2+200)+"px";
+        warriorObj.style.top = (screenHeight/2-150)+"px";
+        makeEnemy();
+
+        document.addEventListener("keydown",checkKey);
+        function checkKey(event){
+            let warriorD = new objDimension(warriorObj);
+            switch(event.keyCode){
+                case 37: if(warriorD.x >= 0){
+                            warriorObj.style.left = (warriorD.x - 15)+"px";
+                         } 
+                         break;
+                case 39: if(warriorD.xCenter <= (1.628*screenWidth)){
+                            warriorObj.style.left = (warriorD.x + 15)+"px";
+                         } 
+                         break;
+                case 38: makeBullet(warriorD.xCenter, warriorD.yCenter, rotateBullet, xIncrement);
+                         break;
+                case 40: if(rotation == 0){
+                            rotation = 1;
+                            rotateBullet = 0;
+                            xIncrement = 0;
+                            warriorObj.style.transform = "rotate(0deg)";         
+                        }
+                         else if(rotation == 1){
+                            rotation = 0;
+                            if(count == 0){
+                                count = 1;
+                                rotateBullet = -30;
+                                xIncrement = -9;
+                                warriorObj.style.transform = "rotate(-30deg)";
+                            }
+                            else if(count == 1){
+                                count = 0;
+                                rotateBullet = 30;
+                                xIncrement = 9;
+                                warriorObj.style.transform = "rotate(30deg)";
+                            }
+                        }
+            }
+        }
+
+        function makeBullet(warriorXcenter, warriorYcenter, rotateBullet , xIncrement){
+            bulletNo += 1;
+            let bulletImg = document.createElement('img');
+            bulletImg.className = `bullet${bulletNo}`;
+            bulletImg.src = "./static/bullet.png";
+            bulletImg.alt = "bullet image";
+            bulletImg.style = `position:absolute; width:0.5rem; height:2rem; left:${warriorXcenter-3}px; top:${warriorYcenter-15}px; transform:rotate(${rotateBullet}deg);`;
+            document.querySelector(".bullets-div").appendChild(bulletImg);
+            let bulletObj = document.querySelector(`.bullet${bulletNo}`);
+            bullets.push(bulletObj);
+            //console.log('new bulletObj',bulletObj,bullets);
+            fireBullet(bulletObj, rotateBullet, xIncrement);
+        }
+
+        function fireBullet(bulletObj, rotateBullet, xIncrement){
+            let bullet = new objDimension(bulletObj);
+            bulletObj.style.left = (bullet.x + xIncrement)+"px";
+            bulletObj.style.top = (bullet.y - yIncrement)+"px";
+            if((bullet.x > 0) && (bullet.x < (1.628*screenWidth)) && (bullet.y > 0)){
+                collisionDetection(bullet,bulletObj);
+                var timerId = setTimeout(fireBullet, 30, bulletObj, rotateBullet, xIncrement);
+            }
+            else{
+                bullets = bullets.filter(retainBullet => retainBullet!=bulletObj);
+                bulletObj.remove();
+                //console.log("bullet removed",bullets);
+                clearTimeout(timerId);
+            }
+        }
+
+        function makeEnemy(){
+            let randomInt = Math.floor(Math.random()*1190);
+            let randomX = Math.floor(Math.random()*20)-10;
+            enemyNo += 1;
+            //console.log('enemyNo',enemyNo, 'randomInt',randomInt);
+            enemyImg = document.createElement("img");
+            enemyImg.className = `enemy${enemyNo}`;
+            enemyImg.src = "./static/enemyRocket.png";
+            enemyImg.style = `position:absolute; width:1.5rem; height:4rem; left:${randomInt}px; top:-50px; transform: rotate(${randomX*2}deg);`;
+            document.querySelector(".enemies-div").appendChild(enemyImg);
+            let enemyObj = document.querySelector(`.enemy${enemyNo}`);
+            //console.log(enemyObj);
+            moveEnemy(enemyObj,randomX);
+            if(enemyNo<500){
+                enemies.push(enemyObj);
+                //console.log("enemy added",enemies);
+                enemyTimerId = setTimeout(makeEnemy,1000);
+            }
+        }
+
+        function moveEnemy(enemyObj,randomX){
+            let enemy = new objDimension(enemyObj);
+            enemyObj.style.left = (enemy.x-randomX)+"px";
+            enemyObj.style.top = (enemy.y+20)+"px";
+            if((enemy.x > 0) && (enemy.x < (1.628*screenWidth)) && (enemy.y < 570)){
+                var timerId = setTimeout(moveEnemy,150,enemyObj,randomX);
+            }
+            else{
+                enemies = enemies.filter(retainEnemy => retainEnemy!=enemyObj);
+                enemyObj.remove();
+                //console.log("enemy removed", enemies);
+                clearTimeout(timerId);
+            }
+            if(enemy.y > 480){
+                let warrior = new objDimension(warriorObj);
+                let collisionFound = rectCollision(enemy, warrior);
+                if(collisionFound){
+                    clearTimeout(enemyTimerId);
+                    let bomb = explosion(warrior.x,warrior.y);
+                    enemies = enemies.filter(retainEnemy => retainEnemy!=enemyObj);
+                    enemyObj.remove();
+                    warriorObj.remove();
+                    for(let i = 0; i < enemies.length; i++){
+                        enemies[i].remove();
+                    }
+                    setTimeout(removeExplosion,250,bomb);
+                    gameOver();                    
+                }
+            }
+        }
+
+        function rectCollision(obj1, obj2){
+            //console.log('rectCollisionFunc');
+            if((obj1.x <= obj2.x+obj2.w) && (obj1.x+obj1.w >= obj2.x) && 
+                (obj1.y <= obj2.y+obj2.h) && (obj1.y+obj1.h >= obj2.y)){
+                return true;
+            }
+        }
+
+        function collisionDetection(sprite,obj){
+            let elements = document.elementsFromPoint(sprite.xCenter,sprite.yCenter);
+            if(elements.length > 0){
+                for(let i=0; i<elements.length; i++){
+                    let elemClass = elements[i].className;
+                    if(elemClass.includes("enemy")){
+                        let bomb = explosion(sprite.x-20,sprite.y-20);
+                        elements[i].remove();
+                        obj.remove();
+                        setTimeout(removeExplosion,250,bomb);
+                        break;
+                    }
+                }
+            }
+        }
+
+        function explosion(bombX,bombY){
+            let bomb = document.createElement('img');
+            bomb.className = "bomb-img";
+            bomb.src = "./static/explosion.png";
+            bomb.style = `position:absolute; width:4rem; height:4rem; left:${bombX}px; top:${bombY}px`;
+            document.querySelector(".explosion-div").appendChild(bomb);
+            let bombObj = document.querySelector(".bomb-img");
+            //console.log(bombObj);
+            return bombObj;
+        }
+
+        function removeExplosion(obj){
+            obj.remove();
+        }
+
+        function gameOver(){
+            let gameOver = document.createElement("h1");
+            gameOver.className = "game-over";
+            gameOver.innerText = "GAME OVER";
+            gameOver.style = "position:absolute; left:400px; top:200px; font-size:5rem; color:yellow; -webkit-text-stroke-width:3px; -webkit-text-stroke-color:maroon;";
+            document.querySelector(".game-over-div").appendChild(gameOver);
+        }
+    </script>
+</body>
+</html>
